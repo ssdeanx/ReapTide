@@ -1,0 +1,32 @@
+[package]
+name = "reaptide"
+version = "0.1.0"
+edition = "2021"
+description = "Reap souls. Survive the tides. — A top-down action roguelite"
+
+[dependencies]
+bevy = "0.18.1"
+rand = "0.10.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# ── Physics ──
+# avian3d = { version = "...", features = ["3d", "default"] }   # 3D physics (collision, forces, layers)
+
+# ── GPU Particles ──
+# bevy_hanabi = "..."                                            # GPU particle system (3D)
+
+# ── Post-processing (Bevy core built-in for bloom, tonemapping, color grading) ──
+# No external crate needed — use bevy::core_pipeline::bloom, tonemapping, etc.
+
+# ── Animation / Tweening ──
+# bevy_tweening = "..."                                          # Animation/transition system
+
+# ── Networking (future) ──
+# bevy_replicon = "..."                                          # Deterministic multiplayer
+
+# ── Asset pipeline ──
+# gltf = "..."                                                   # glTF/GLB import support
+
+# ── Debug / Dev Tools ──
+# bevy_inspector_egui = "..."                                    # Runtime entity inspector
