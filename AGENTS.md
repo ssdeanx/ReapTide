@@ -6,8 +6,8 @@
 
 | Field | Value |
 |-------|-------|
-| Version | 2.0.0 |
-| Last Updated | 2026-06-18T11:30:00-04:00 |
+| Version | 3.0.0 |
+| Last Updated | 2026-06-19T10:00:00-04:00 |
 | Status | Active |
 
 ---
@@ -17,6 +17,8 @@ This file defines how AI agents should work on this project across sessions. Loa
 ## Project Identity
 
 **ReapTide** — A top-down 2D action roguelite (Vampire Survivors × Hades). Rust + Bevy 0.18. AAA-quality target. Professional-grade architecture, not a prototype.
+
+**Rendering:** Currently 2D (Mesh2d + ColorMaterial). **3D isometric conversion is planned** (T0.0) — the architecture docs (SPEC.md) describe the target isometric model but the actual code is still 2D.
 
 ## Core Documents
 
@@ -28,6 +30,7 @@ All foundation documents live in `docs/`. These are versioned, timestamped, and 
 | `docs/design.md` | Design decisions — stat system formulas, AI design, economy balance, UI philosophy, migration path | When implementing a system |
 | `docs/requirements.md` | Functional + non-functional requirements with traceability matrix | When validating completeness |
 | `docs/tasks.md` | Task breakdown with priorities, sizes, dependencies, sprint plan | Every session — this is your todo list |
+| `.github/copilot-instructions.md` | Copilot instructions — tech stack, conventions, commands, project structure | Read once at setup, referenced by the agent automatically |
 
 ## Key Conventions
 
@@ -73,7 +76,7 @@ We are building the GRANITE foundation. The following systems are P0/P1 and shou
 6. T1.3 — Port existing player stats to use ModifierStack
 7. T2.2 — Expand enemy types (target: 10 distinct types)
 
-### Current State (v2.0.0 — Foundation)
+### Current State (v3.0.0 — Foundation Complete)
 - [x] Project scaffolding with Bevy 0.18
 - [x] Modular architecture structure (core/, gameplay/, ui/, audio/, etc.)
 - [x] Core state machine (AppState, GameOverlayState)
@@ -81,8 +84,8 @@ We are building the GRANITE foundation. The following systems are P0/P1 and shou
 - [x] Event bus (DamageEvent, KillEvent, XpPickupEvent, LevelUpEvent, etc.)
 - [x] Player movement (WASD/arrows, rotation)
 - [x] Auto-attack system (nearest-target, projectile spawn)
-- [ ] ModifierStack stat system — NOT STARTED
-- [ ] EnemyBrain FSM — NOT STARTED
+- [x] ModifierStack stat system — COMPLETE (StatInstance, ModifierType, StatBundle, 9 tests)
+- [x] EnemyBrain FSM — COMPLETE (9 states, perception, memory, 8 tests)
 - [x] Basic enemy chase AI (simple movement towards player)
 - [x] Wave spawning system (3 types, scaling)
 - [x] Combat (projectiles, contact damage, damage types)
@@ -94,6 +97,8 @@ We are building the GRANITE foundation. The following systems are P0/P1 and shou
 - [x] 4 characters defined
 - [x] 6 shop items defined
 - [x] 7 achievements defined
+- [x] T1.3 — Player stats ported to ModifierStack (8 files changed, StatBundle integrated)
+- [x] Bevy 0.18 API migration (new UI, AudioPlayer, BorderColor, Text API, dead code removal)
 - [ ] Physics engine — NOT STARTED
 - [ ] GPU particles — NOT STARTED
 - [ ] 2D lighting — NOT STARTED
@@ -101,6 +106,7 @@ We are building the GRANITE foundation. The following systems are P0/P1 and shou
 - [ ] Map generation — NOT STARTED
 - [ ] 10 enemy types — NOT STARTED (only 3)
 - [ ] 10 characters — NOT STARTED (only 4)
+- [ ] T0.0 — 3D isometric conversion — NOT STARTED (game is still 2D)
 
 ## Session Handoff Protocol
 

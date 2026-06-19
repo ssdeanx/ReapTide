@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use rand::prelude::*;
 use std::sync::Arc;
 
-#[derive(Event)]
+#[derive(Message)]
 pub enum AudioEvent {
     Shoot,
     Kill,
@@ -91,7 +91,7 @@ pub fn setup_audio(mut commands: Commands, mut assets: ResMut<Assets<AudioSource
 }
 
 pub fn play_audio_events(
-    mut events: EventReader<AudioEvent>,
+    mut events: MessageReader<AudioEvent>,
     sfx: Res<SoundEffects>,
     mut commands: Commands,
 ) {

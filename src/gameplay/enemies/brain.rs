@@ -60,8 +60,8 @@ impl Default for Perception {
 /// Used to give enemies a "hunting" behavior when the player breaks line of sight.
 #[derive(Clone, Debug)]
 pub struct EnemyMemory {
-    /// Where the enemy last saw or heard the player
-    pub last_known_position: Option<Vec2>,
+    /// Where the enemy last saw or heard the player (XZ plane, Y=0.0)
+    pub last_known_position: Option<Vec3>,
     /// Game time (elapsed_secs) when the player was last sensed
     pub last_seen_time: f32,
     /// Cooldown timer for re-entering Alert state after losing the player
@@ -190,17 +190,20 @@ pub fn update_enemy_brain(
     let elapsed = time.elapsed_secs();
     let dt = time.delta().as_secs_f32();
 
-    // Get player position if they exist
-    let player_pos = player_q.single().ok().map(|tf| tf.translation.truncate());
+    // Get player position if they exist (store full Vec3, Y=0.0 for ground AI)
+    let player_pos = player_q
+        .single()
+        .ok()
+        .map(|tf| Vec3::new(tf.translation.x, 0.0, tf.translation.z));
 
     for (tf, _enemy, mut brain) in &mut enemy_q {
-        let enemy_pos = tf.translation.truncate();
+        let enemy_pos = Vec2::new(tf.translation.x, tf.translation.z);
         brain.state_timer.tick(time.delta());
 
         // ── Perception Check ──
         //
         // Calculate distance to player and update enemy memory.
-        let dist_to_player = player_pos.map(|pp| pp.distance(enemy_pos));
+        let dist_to_player = player_pos.map(|pp| Vec2::new(pp.x, pp.z).distance(enemy_pos));
 
         if let Some(dist) = dist_to_player {
             if dist <= brain.perception.sight_range {

@@ -29,6 +29,17 @@
 
 **Phase: Foundation — Prototype Stage**
 
+> **Important:** The game currently renders in **2D** (Mesh2d + ColorMaterial, XY movement, Camera2d/orthographic).
+> T0.0 (3D isometric conversion) is **P0 / Not Started**. The architecture docs (SPEC.md) describe the
+> *target* isometric model, but the codebase still uses Bevy's 2D pipeline. Do NOT assume 3D is active.
+> See T0.0 for the full migration plan when you begin that task.
+
+### Phase 0 (T0) Progress
+- **T0.0** 3D Isometric Conversion — **Not Started** (game is 2D, SPEC describes target)
+- **T0.1** Cargo.toml Dependencies — **Complete**
+- **T0.2** Modular Refactor — **Complete**
+- **T0.3** State Machine Upgrade — **Not Started**
+
 ### Recently Completed
 
 - T0.1 — Cargo.toml updated with all required deps (commented, ready for uncomment as features are implemented)
@@ -39,10 +50,10 @@
 - Total: 14 new stat system tests, all green
 - **Bevy 0.18 warning pass** — Fixed `BorderColor::all()` → `BorderColor()`, `text.0` → `text.sections[0].value`, missing `rand::Rng` imports, missing `Default` derives, duplicate dead code removal, unused `GamePlugin` trait removal, HUD not being spawned
 - **T2.1 — EnemyBrain FSM** — Full AI state machine with 9 states, perception, memory, timer-driven transitions, 8 unit tests, integrated into gameplay loop
+- **T1.3 — Player stats ported to ModifierStack** — `Player` component slimmed to runtime state only (health, level, xp, timer, upgrade flags). All computed stats (max_health, attack_damage, attack_range, move_speed, attack_interval) live in `StatBundle`. `spawn_player` now actually called from `setup_gameplay`. Shop bonuses, level-up growth, and weapon upgrades all apply as named `StatModifier`s. `init_game_resources` startup system creates shared meshes/materials. GameMeshes/GameMaterials resources properly initialised.
 
 ### Next Priority
 
-- T1.3 — Port existing player stats to use ModifierStack **[P1 — Size S]**
 - T2.2 — Expand enemy types to 10 **[P1 — Size M]**
 - T4.1 — Map generation (arena layout) **[P1 — Size L]**
 - T3.1 — Integrate Avian3D physics (XZ-constrained)
@@ -55,32 +66,63 @@
 
 ### T0.0 Convert to 3D Isometric Rendering
 
-**Priority: P0 | Size: M | Status: Not Started**
+**Priority: P0 | Size: M | Status: In Progress (compilation broken)**
 
-Convert the entire rendering pipeline from 2D top-down to 3D isometric. All gameplay logic stays 2D (movement on XZ plane), but rendering uses the full Bevy 3D pipeline.
+Convert the entire rendering pipeline from 2D top-down to 3D isometric. All gameplay logic stays 2D
+(movement on XZ plane), but rendering uses the full Bevy 3D pipeline.
 
-**Changes required:**
+**Completed (all rendering primitives swapped):**
 
-- [ ] Add `Camera3dBundle` with orthographic projection at isometric angle (~35-45° down, 45° rotated)
-- [ ] Create `IsometricCamera` marker component
-- [ ] Replace all `Mesh2d` + `ColorMaterial` with `Mesh3d` + `StandardMaterial`
-- [ ] Replace all `Mesh2dHandle` with `Mesh3d` handles
-- [ ] Convert XY movement to XZ movement (Y is up, ground is Y=0)
-- [ ] Set entity Y position to ground height (0.0 for ground, 0.5 for character height)
-- [ ] Add ground plane (flat mesh with StandardMaterial)
-- [ ] Verify camera follow and zoom work with isometric angle
-- [ ] Update screen shake to affect isometric camera (offset in camera space)
-- [ ] Add `DirectionalLight` for global illumination
-- [ ] Remove `src/gameplay/camera.rs` dark overlay system, replace with proper lighting
+- [x] Constants — added 3D isometric constants (ISO_CAMERA_HEIGHT, ENTITY_HEIGHT, GROUND_SIZE, ORTHO_NEAR/FAR)
+- [x] Components — Particle.velocity: Vec3, Projectile.target: Vec3, removed DarkOverlay/GameCamera
+- [x] Resources — StandardMaterial migration, ground plane mesh, unlit materials for entities
+- [x] Camera — IsometricCamera marker, spawn_scene (ground + lights + camera), XZ follow, zoom via ortho scale, XZ shake
+- [x] Player spawn — Mesh3d + MeshMaterial3d + ENTITY_HEIGHT + XZ movement + look_to rotation
+- [x] Combat — Mesh3d, XZ distance, XZ projectile movement, Vec3 particles
+- [x] Enemies — Mesh3d + MeshMaterial3d, XZ spawn/chase, Vec3 last_known_position in brain
+- [x] XP — XZ magnet attraction, XZ collection distance
+- [x] Particles — Vec3 velocity, Z += instead of Y +=
+- [x] Gameplay wiring — spawn_scene startup, update_zoom system, removed update_lighting_overlay
+- [x] Removed all Mesh2d/MeshMaterial2d/ColorMaterial/bevy::sprite references from codebase
 
-**Coordinate mapping:**
-```
-Old (2D XY)          New (3D XZ with Y=up)
-transform.y (up)     transform.z (south)
-transform.x (right)  transform.x (right)
-transform.z (depth)  transform.y (height — set to 0 or entity height)
-Vec2{x, y}           Vec3{x, 0.0, z}
-movement.y           movement.z
+**Remaining (Bevy 0.18 API mismatches breaking compilation):**
+
+Bevy 0.18 renamed the global event bus: `Event` → `Message`, `EventWriter` → `MessageWriter`,
+`EventReader` → `MessageReader`. rand 0.10 renamed `thread_rng()` → `rng()`.
+`AudioEvent` is not re-exported from `crate::audio`.
+
+- [ ] Fix `src/audio/mod.rs` — add `pub use sfx::AudioEvent;` re-export
+- [ ] Fix `src/core/event.rs` — `#[derive(Event)]` → `#[derive(Message)]`, all writer/reader types
+- [ ] Fix `src/audio/sfx.rs` — `#[derive(Event)]` → `#[derive(Message)]`
+- [ ] Fix `src/gameplay/combat.rs` — `EventWriter` → `MessageWriter`, `thread_rng()` → `rng()`
+- [ ] Fix `src/gameplay/xp.rs` — `EventWriter` → `MessageWriter`, `thread_rng()` → `rng()`
+- [ ] Fix `src/gameplay/player.rs` — `EventWriter` → `MessageWriter`
+- [ ] Fix `src/gameplay/enemies/mod.rs` — `thread_rng()` → `rng()`
+- [ ] Fix `src/gameplay/ui.rs` — all writer/reader types, `thread_rng()` → `rng()`
+- [ ] Fix `src/save/profile.rs` — check `Event`/`Message` usage
+- [ ] Fix `src/gameplay/stats/definitions.rs` — check `Event`/`Message` usage
+- [ ] Verify `src/gameplay/camera.rs` `MessageReader<MouseWheel>` compiles
+- [ ] Run `cargo check` and iterate until clean
+
+**Bevy 0.18 API reference for this pass:**
+```rust
+// NO Camera3dBundle — spawn components directly
+commands.spawn((
+    Camera3d::default(),
+    Camera::default(),
+    Projection::Orthographic(OrthographicProjection { ... }),
+    Tonemapping::None,
+    IsometricCamera,
+    Transform::from_xyz(...),
+));
+
+// Old -> New
+#[derive(Event)]  →  #[derive(Message)]
+EventWriter<T>    →  MessageWriter<T>
+EventReader<T>    →  MessageReader<T>
+Events<T>         →  Messages<T>
+app.add_event::<T>()  →  app.add_message::<T>()
+rand::thread_rng()    →  rand::rng()
 ```
 
 ---
@@ -268,19 +310,26 @@ pub struct StatDefinitions {
 
 ---
 
-### T1.3 Add Primary Stats to Character Component
+### T1.3 Port Player Stats to ModifierStack
 
-**Priority: P1 | Size: S | Status: Not Started**
+**Priority: P0 | Size: S | Status: Complete**
 
-Replace the flat `Player.health`, `Player.attack_damage`, etc. with StatInstance-based stats from StatBundle.
+Replaced flat `Player` stat fields with `StatBundle` (ModifierStack) attached to the player entity.
 
 **Changes:**
 
-- [ ] `Player` component gets `stats: HashMap<&'static str, StatInstance>` (via StatBundle)
-- [ ] Initialized from CharacterDef base stats
-- [ ] CharacterDef gains all new stat fields
-- [ ] Upgrade system modifies stats via add_modifier instead of hardcoded multiplication
-- [ ] Shop bonuses apply as permanent modifiers
+- [x] Removed `max_health`, `attack_damage`, `attack_range` from `Player` component
+- [x] `spawn_player` creates a `StatBundle` via `StatDefinitions::create_bundle()`
+- [x] Character base values set as `StatInstance.base` on each relevant stat
+- [x] Shop purchases apply as named `StatModifier`s (source: `shop_*`)
+- [x] Level-up bonuses apply as `StatModifier`s (source: `level_up_*_N`)
+- [x] Weapon upgrades apply as `StatModifier`s (source: `weapon_upgrade_*`)
+- [x] `player_movement` reads `move_speed` from `StatBundle`
+- [x] `auto_attack` reads `attack_range` and `attack_damage` from `StatBundle`
+- [x] `update_ui` reads `max_health` from `StatBundle`
+- [x] `setup_gameplay` now calls `spawn_player` with proper resources
+- [x] `init_game_resources` startup system creates GameMeshes/GameMaterials
+- [x] `collect_xp` and `handle_upgrade_choice` use `&mut StatBundle` for stat modifications
 
 ---
 

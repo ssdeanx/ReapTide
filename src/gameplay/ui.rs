@@ -1,6 +1,7 @@
 use crate::core::AppState;
 use crate::gameplay::components::*;
 use crate::gameplay::resources::*;
+use crate::gameplay::stats::modifier::StatBundle;
 use crate::save::{award_currency, save_profile, PlayerProfile};
 use bevy::prelude::*;
 
@@ -57,19 +58,23 @@ pub fn spawn_hud(commands: &mut Commands) {
 }
 
 // ── Update HUD each frame ──
+//
+// Reads max_health from StatBundle so that modifiers (shop, level-up, etc.)
+// are reflected in the health bar and HUD text.
 
 pub fn update_ui(
-    player_q: Query<&Player>,
+    player_q: Query<(&Player, &StatBundle)>,
     wave_q: Query<&WaveSpawner>,
     mut bar_q: Query<&mut Node, With<HealthBarFill>>,
     mut text_q: Query<&mut Text, With<HudText>>,
 ) {
-    let Ok(p) = player_q.single() else {
+    let Ok((p, stats)) = player_q.single() else {
         return;
     };
+    let max_hp = stats.get("max_health");
     let wave = wave_q.single().ok().map_or(0, |s| s.wave);
     if let Ok(mut style) = bar_q.single_mut() {
-        let pct = (p.health / p.max_health * 100.0).max(0.0);
+        let pct = (p.health / max_hp * 100.0).max(0.0);
         style.width = Val::Percent(pct);
     }
     if let Ok(mut text) = text_q.single_mut() {
@@ -257,7 +262,7 @@ pub fn check_death(
     mut stats: ResMut<GameStats>,
     mut game_over: ResMut<GameOver>,
     mut next_state: ResMut<NextState<AppState>>,
-    mut audio_events: EventWriter<crate::audio::AudioEvent>,
+    mut audio_events: MessageWriter<crate::audio::AudioEvent>,
 ) {
     if game_over.active {
         return;

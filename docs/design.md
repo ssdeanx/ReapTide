@@ -43,6 +43,8 @@ ReapTide is a **top-down 2D action roguelite** where the player controls a soul-
 
 The player character auto-attacks nearby enemies. The player controls movement, positioning, dodge timing, and upgrade selection. Each run is unique — the weapon evolutions, passive items, and boons available create emergent build variety.
 
+> **⚠️ Current rendering: 2D (Mesh2d + ColorMaterial).** The architecture design docs (sections 13.x) describe a **planned 3D isometric conversion** (T0.0 in tasks.md). Until that task begins, all code uses 2D rendering primitives. See the [Migration Path](#appendix-migration-path-2d-top-down--3d-isometric) in the appendix for the conversion plan.
+
 ### Target Audience
 
 - Players who enjoy roguelites (Hades, Dead Cells, Rogue Legacy)
@@ -653,30 +655,113 @@ All gameplay-defining data lives in registries/tables, not in system code. This 
 
 ## Appendix: Migration Path (2D Top-Down → 3D Isometric)
 
-| # | Task | Effort | Priority |
-|---|------|--------|----------|
-| 0 | **Switch to 3D rendering** | Medium | Critical |
-|   | • Replace Mesh2d + ColorMaterial with Mesh3d + StandardMaterial | | |
-|   | • Replace Camera2d with Camera3d (orthographic, isometric angle) | | |
-|   | • Convert XY movement to XZ, Y becomes up/height | | |
-|   | • Ground plane at Y=0, entities at Y=0.5 (or their height) | | |
-| 1 | Update Cargo.toml with all new dependencies (avian3d, hanabi, etc.) | Small | Critical |
-| 2 | Implement StatInstance + ModifierStack system | Medium | Critical |
-| 3 | Implement EnemyBrain FSM | Medium | Critical |
-| 4 | Expand character registry (10 characters) | Medium | High |
-| 5 | Expand enemy registry (10 types) | Medium | High |
-| 6 | Integrate Avian3D physics (XZ-constrained) | Medium | High |
-| 7 | Add bevy_hanabi 3D GPU particle system | Medium | High |
-| 8 | Add 3D lighting (DirectionalLight + PointLight) | Medium | High |
-| 9 | Implement biome + room generation | Large | High |
-| 10 | Implement item/equipment system | Large | High |
-| 11 | Add post-processing pipeline (bloom, vignette, color grading) | Medium | Medium |
-| 12 | Build shop screen UI | Medium | Medium |
-| 13 | Build settings screen UI | Medium | Medium |
-| 14 | Implement elemental interactions | Medium | Medium |
-| 15 | Implement boss AI framework | Large | Medium |
-| 16 | Implement character mastery | Medium | Medium |
-| 17 | Add proper audio asset pipeline (OGG) | Medium | Low |
-| 18 | Implement controller support | Medium | Low |
-| 19 | Implement debug console | Medium | Low |
-| 20 | Networking foundation | Large | Future |
+### T0.0 Status: In Progress
+
+The codebase has been partially converted. Constants, components, resources, camera, and player spawn use 3D primitives.
+Compilation is broken due to remaining Bevy 0.18 API mismatches. See below for detailed fix list.
+
+### Bevy 0.18 API Reference (for this conversion)
+
+**Camera3d** — No `Camera3dBundle` in 0.18. `Camera3d` is a standalone component.
+```rust
+// Correct pattern:
+commands.spawn((
+    Camera3d::default(),
+    Camera::default(),
+    Projection::Orthographic(OrthographicProjection {
+        scale: 1.0,
+        scaling_mode: ScalingMode::WindowSize(1.0),
+        near: -1000.0,
+        far: 1000.0,
+        ..default()
+    }),
+    Tonemapping::None,   // import from bevy::core_pipeline::tonemapping::Tonemapping
+    IsometricCamera,     // marker component
+    Transform::from_xyz(0.0, ISO_HEIGHT, ISO_HEIGHT).looking_at(Vec3::ZERO, Vec3::Y),
+));
+```
+
+**Message system** (replaces Event system for global bus):
+```rust
+// Old (Bevy 0.17)
+#[derive(Event)]
+struct MyEvent;
+fn sys(mut writer: EventWriter<MyEvent>, mut reader: EventReader<MyEvent>)
+
+// New (Bevy 0.18)
+#[derive(Message)]   // ← Event → Message
+fn sys(mut writer: MessageWriter<MyEvent>, mut reader: MessageReader<MyEvent>)
+```
+
+**Note:** Observer-based events (entity-specific) still use `#[derive(Event)]` + `Trigger`.
+We only use the global bus pattern (`Message`), not observers.
+
+**Rendering:**
+- `Mesh2d` → `Mesh3d`
+- `MeshMaterial2d` → `MeshMaterial3d`
+- `ColorMaterial` → `StandardMaterial` (with `unlit: true` for flat-shaded entities)
+- All imports covered by `bevy::prelude::*`
+
+**Input:**
+- `EventReader<MouseWheel>` → `MessageReader<MouseWheel>`
+
+**rand 0.10 changes:**
+- `rand::thread_rng()` → `rand::rng()`
+
+**Missing re-exports to fix:**
+- `AudioEvent` is defined in `src/audio/sfx.rs` but not re-exported from `src/audio/mod.rs`
+- Fix: add `pub use sfx::AudioEvent;` to `src/audio/mod.rs`
+
+### Files Needing Fixes for Compilation
+
+| File | Issues |
+|------|--------|
+| `src/audio/mod.rs` | Missing `pub use sfx::AudioEvent;` re-export |
+| `src/core/event.rs` | All `#[derive(Event)]` → `#[derive(Message)]`; `EventWriter`/`EventReader` → `MessageWriter`/`MessageReader` |
+| `src/audio/sfx.rs` | `#[derive(Event)]` → `#[derive(Message)]` |
+| `src/gameplay/combat.rs` | `EventWriter` → `MessageWriter`, `rand::thread_rng()` → `rand::rng()` |
+| `src/gameplay/xp.rs` | `EventWriter` → `MessageWriter`, `rand::thread_rng()` → `rand::rng()` |
+| `src/gameplay/player.rs` | `EventWriter` → `MessageWriter` |
+| `src/gameplay/enemies/mod.rs` | `rand::thread_rng()` → `rand::rng()` |
+| `src/gameplay/ui.rs` | `EventWriter`/`EventReader` → `MessageWriter`/`MessageReader`, `rand::thread_rng()` → `rand::rng()` |
+| `src/save/profile.rs` | Check `Event`/`Message` usage |
+| `src/gameplay/stats/definitions.rs` | Check `Event`/`Message` usage |
+| `src/gameplay/camera.rs` | Verify `MessageReader<MouseWheel>` works; check `ScreenShake` Y-axis logic |
+
+### Removed Items
+- `DarkOverlay` component (2D lighting overlay, replaced by 3D lighting)
+- `GameCamera` component (replaced by `IsometricCamera` marker in camera.rs)
+- `update_lighting_overlay` system (wiring removed from gameplay/mod.rs)
+- All `Mesh2d`/`MeshMaterial2d`/`ColorMaterial`/`bevy::sprite` imports
+
+### Full Migration Roadmap
+
+| # | Task | Effort | Priority | Status |
+|---|------|--------|----------|--------|
+| 0 | **Switch to 3D rendering** | Medium | Critical | **In Progress** |
+|   | • Replace Mesh2d + ColorMaterial with Mesh3d + StandardMaterial | | | **Done** |
+|   | • Replace Camera2d with Camera3d (orthographic, isometric angle) | | | **Done** |
+|   | • Convert XY movement to XZ, Y becomes up/height | | | **Done** |
+|   | • Ground plane at Y=0, entities at Y=0.5 (or their height) | | | **Done** |
+|   | • Fix Bevy 0.18 API mismatches (Message/Event, thread_rng) | | | **Remaining** |
+|   | • Compile and fix all errors | | | **Remaining** |
+| 1 | Update Cargo.toml with all new dependencies | Small | Critical | Complete |
+| 2 | Implement StatInstance + ModifierStack system | Medium | Critical | Complete |
+| 3 | Implement EnemyBrain FSM | Medium | Critical | Complete |
+| 4 | Expand character registry (10 characters) | Medium | High | Not started |
+| 5 | Expand enemy registry (10 types) | Medium | High | Not started |
+| 6 | Integrate Avian3D physics (XZ-constrained) | Medium | High | Not started |
+| 7 | Add bevy_hanabi 3D GPU particle system | Medium | High | Not started |
+| 8 | Add 3D lighting (DirectionalLight + PointLight) | Medium | High | Done (basic) |
+| 9 | Implement biome + room generation | Large | High | Not started |
+| 10 | Implement item/equipment system | Large | High | Not started |
+| 11 | Add post-processing pipeline (bloom, vignette, color grading) | Medium | Medium | Not started |
+| 12 | Build shop screen UI | Medium | Medium | Not started |
+| 13 | Build settings screen UI | Medium | Medium | Not started |
+| 14 | Implement elemental interactions | Medium | Medium | Not started |
+| 15 | Implement boss AI framework | Large | Medium | Not started |
+| 16 | Implement character mastery | Medium | Medium | Not started |
+| 17 | Add proper audio asset pipeline (OGG) | Medium | Low | Not started |
+| 18 | Implement controller support | Medium | Low | Not started |
+| 19 | Implement debug console | Medium | Low | Not started |
+| 20 | Networking foundation | Large | Future | Not started |

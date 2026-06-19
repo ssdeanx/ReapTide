@@ -1,5 +1,6 @@
 pub mod brain;
 
+use crate::constants::ENTITY_HEIGHT;
 use crate::gameplay::components::*;
 use crate::gameplay::resources::*;
 use bevy::prelude::*;
@@ -32,7 +33,7 @@ pub fn spawn_enemies(
 
     s.wave += 1;
     let n = (s.count + s.wave / 3).min(50);
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     for _ in 0..n {
         let angle = rng.gen_range(0.0..std::f32::consts::TAU);
@@ -90,9 +91,9 @@ pub fn spawn_enemies(
         };
 
         commands.spawn((
-            Mesh2d(mesh),
-            MeshMaterial2d(mat),
-            Transform::from_xyz(x, y, 0.0),
+            Mesh3d(mesh),
+            MeshMaterial3d(mat),
+            Transform::from_xyz(x, ENTITY_HEIGHT, y),
             Enemy {
                 health: hp + rng.gen_range(-3.0..3.0),
                 speed: spd + rng.gen_range(-10.0..10.0),
@@ -126,7 +127,7 @@ pub fn enemies_chase(
     let Ok(p_tf) = player_q.single() else {
         return;
     };
-    let pp = p_tf.translation.truncate();
+    let pp = Vec2::new(p_tf.translation.x, p_tf.translation.z);
     for (mut tf, e, brain) in &mut enemy_q {
         // Respect brain state: only chase if aggressive (Chase/Attack), or fall back to legacy behavior
         let should_chase = match brain {
@@ -137,8 +138,9 @@ pub fn enemies_chase(
             continue;
         }
 
-        let dir = (pp - tf.translation.truncate()).normalize();
+        let ep = Vec2::new(tf.translation.x, tf.translation.z);
+        let dir = (pp - ep).normalize();
         tf.translation.x += dir.x * e.speed * time.delta().as_secs_f32();
-        tf.translation.y += dir.y * e.speed * time.delta().as_secs_f32();
+        tf.translation.z += dir.y * e.speed * time.delta().as_secs_f32();
     }
 }

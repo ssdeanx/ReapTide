@@ -31,11 +31,19 @@ ReapTide is a top-down 2D action roguelite merging Vampire Survivors' horde-surv
 
 ---
 
-## Rendering Model — 3D Isometric
+## Rendering Model — 3D Isometric (Planned)
 
-ReapTide renders in 3D with an isometric orthographic camera. This gives us real PBR lighting, real shadows, depth-of-field, and full 3D asset pipeline — with 2D gameplay feel.
+> **⚠️ TARGET ARCHITECTURE — NOT YET IMPLEMENTED**
+>
+> The game currently renders in **2D** using Bevy's 2D pipeline:
+> `Mesh2d`, `ColorMaterial`, XY plane movement, z=0 for all entities.
+>
+> The section below describes the **target** 3D isometric model. Do not assume any of this
+> is active in the current codebase. See T0.0 in docs/tasks.md for the migration plan.
 
-### Why 3D Isometric
+ReapTide will render in 3D with an isometric orthographic camera. This gives us real PBR lighting, real shadows, depth-of-field, and full 3D asset pipeline — with 2D gameplay feel.
+
+### Why Convert to 3D Isometric
 
 1. **Bevy's primary pipeline is 3D.** The PBR renderer, lighting, shadows, and post-processing are all first-class. 2D is a secondary path with fewer features.
 2. **Blender-first assets.** You build models once. They render with real lighting and shadows. No sprite baking, no angle-limited art.
@@ -118,19 +126,21 @@ The gameplay change is almost entirely mechanical — find-and-replace `.y` → 
 | Map generation | Spec-only | Described but not implemented |
 | Boss enemies | Not started | Described in spec, not built |
 | Map biomes | Not started | Not implemented |
-| Advanced AI | Not started | Need finite state machine, perception, behavior sets |
+| Advanced AI | Complete | EnemyBrain FSM with 9 states (T2.1) — 8 unit tests |
 | Physics engine | Not started | Need collision, knockback physics |
 | 2D lighting | Not started | Need point lights, shadows |
 | Particle system | Not started | Need GPU particles (Hanabi) |
 | Post-processing | Not started | Need bloom, distortion |
 | Shader system | Not started | Need custom shaders, post-processing |
 | Networking | Not started | Future multiplayer backbone |
-| Expanded stats | **Complete** | StatInstance + ModifierStack + StatDefinitions — 24 stat definitions, 14 tests |
+| Expanded stats | **Complete** | StatInstance + ModifierStack + StatDefinitions + player stats ported (T1.3) — slimmed Player, all computed stats via StatBundle |
 | Animation system | Not started | Need sprite/animation pipeline |
 | Equipment/items | Not started | Need loot, inventory, equippable system |
 | Crafting | Not started | Need material drops, recipes |
 | Localization | Not started | Need i18n framework |
 | Debug console | Not started | Need developer tools |
+| 3D isometric rendering | **Planned (not started)** | Game still uses 2D pipeline (Mesh2d, ColorMaterial). See T0.0 |
+| Bevy 0.18 migration | Complete | New UI API, AudioPlayer, dead code removal |
 
 ---
 

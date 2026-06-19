@@ -1,24 +1,30 @@
+use crate::constants::ENTITY_HEIGHT;
 use crate::gameplay::components::*;
 use crate::gameplay::resources::*;
+use crate::gameplay::stats::modifier::StatBundle;
 use bevy::prelude::*;
 use rand::Rng;
 
 // ── Auto-Attack ──
+//
+// Reads computed stats (attack_range, attack_damage) from StatBundle so that
+// modifiers from character base, shop purchases, level-ups, and weapon upgrades
+// all apply transparently.
 
 pub fn auto_attack(
     time: Res<Time>,
     upgrade_state: Res<UpgradeState>,
-    mut player_q: Query<(&Transform, &mut Player)>,
+    mut player_q: Query<(&Transform, &mut Player, &StatBundle)>,
     enemy_q: Query<&Transform, (With<Enemy>, Without<Player>)>,
     mut commands: Commands,
     meshes: Res<crate::gameplay::resources::GameMeshes>,
     materials: Res<crate::gameplay::resources::GameMaterials>,
-    mut audio_events: EventWriter<crate::audio::AudioEvent>,
+    mut audio_events: MessageWriter<crate::audio::AudioEvent>,
 ) {
     if upgrade_state.active {
         return;
     }
-    let Ok((p_tf, mut p)) = player_q.single_mut() else {
+    let Ok((p_tf, mut p, stats)) = player_q.single_mut() else {
         return;
     };
     p.attack_timer.tick(time.delta());
@@ -26,13 +32,15 @@ pub fn auto_attack(
         return;
     }
 
-    let pp = p_tf.translation.truncate();
-    let mut best: Option<(Vec2, f32)> = None;
+    let pp = Vec2::new(p_tf.translation.x, p_tf.translation.z);
+    let attack_range = stats.get("attack_range");
+    let attack_damage = stats.get("attack_damage");
+    let mut best: Option<(Vec3, f32)> = None;
 
     for e_tf in &enemy_q {
-        let ep = e_tf.translation.truncate();
-        let d = pp.distance(ep);
-        if d <= p.attack_range {
+        let ep = Vec3::new(e_tf.translation.x, 0.0, e_tf.translation.z);
+        let d = pp.distance(Vec2::new(e_tf.translation.x, e_tf.translation.z));
+        if d <= attack_range {
             match best {
                 Some((_, cd)) if d < cd => best = Some((ep, d)),
                 None => best = Some((ep, d)),
@@ -56,11 +64,11 @@ pub fn auto_attack(
         };
 
         commands.spawn((
-            Mesh2d(meshes.projectile.clone()),
-            MeshMaterial2d(proj_mat),
-            Transform::from_xyz(pp.x, pp.y, 0.0).with_scale(Vec3::splat(scale)),
+            Mesh3d(meshes.projectile.clone()),
+            MeshMaterial3d(proj_mat),
+            Transform::from_xyz(pp.x, ENTITY_HEIGHT, pp.y).with_scale(Vec3::splat(scale)),
             Projectile {
-                damage: p.attack_damage,
+                damage: attack_damage,
                 life: Timer::from_seconds(0.5, TimerMode::Once),
                 target,
             },
@@ -85,14 +93,18 @@ pub fn update_projectiles(
             continue;
         }
 
-        let pos = tf.translation.truncate();
-        let dir = (p.target - pos).normalize();
-        tf.translation.x += dir.x * 400.0 * time.delta().as_secs_f32();
-        tf.translation.y += dir.y * 400.0 * time.delta().as_secs_f32();
+        // Projectile moves toward target on XZ plane
+        let pos = Vec2::new(tf.translation.x, tf.translation.z);
+        let target_xz = Vec2::new(p.target.x, p.target.z);
+        let dir = (target_xz - pos).normalize();
+        let dt = time.delta().as_secs_f32();
+        tf.translation.x += dir.x * 400.0 * dt;
+        tf.translation.z += dir.y * 400.0 * dt;
 
-        let new_pos = tf.translation.truncate();
+        let new_pos = Vec2::new(tf.translation.x, tf.translation.z);
         for (mut enemy, e_tf) in &mut enemy_q {
-            if new_pos.distance(e_tf.translation.truncate()) < 14.0 {
+            let epos = Vec2::new(e_tf.translation.x, e_tf.translation.z);
+            if new_pos.distance(epos) < 14.0 {
                 enemy.health -= p.damage;
                 kill.push(e);
                 break;
@@ -112,29 +124,29 @@ pub fn enemy_death(
     meshes: Res<crate::gameplay::resources::GameMeshes>,
     materials: Res<crate::gameplay::resources::GameMaterials>,
     mut stats: ResMut<GameStats>,
-    mut audio_events: EventWriter<crate::audio::AudioEvent>,
+    mut audio_events: MessageWriter<crate::audio::AudioEvent>,
 ) {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     for (e, tf, enemy) in &q {
         if enemy.health <= 0.0 {
-            // Drop XP gem
+            // Drop XP gem (on XZ plane at ground level)
             commands.spawn((
-                Mesh2d(meshes.gem.clone()),
-                MeshMaterial2d(materials.gem.clone()),
-                Transform::from_xyz(tf.translation.x, tf.translation.y, 0.0),
+                Mesh3d(meshes.gem.clone()),
+                MeshMaterial3d(materials.gem.clone()),
+                Transform::from_xyz(tf.translation.x, ENTITY_HEIGHT, tf.translation.z),
                 XpGem(enemy.xp_value),
             ));
 
-            // Particle burst
-            let pos = tf.translation.truncate();
+            // Particle burst in 3D (XZ plane with small Y variation)
+            let pos = Vec3::new(tf.translation.x, ENTITY_HEIGHT, tf.translation.z);
             for _ in 0..crate::constants::PARTICLE_COUNT {
                 let a = rng.gen_range(0.0..std::f32::consts::TAU);
                 let speed = rng.gen_range(60.0..crate::constants::PARTICLE_SPEED);
-                let vel = Vec2::new(a.cos() * speed, a.sin() * speed);
+                let vel = Vec3::new(a.cos() * speed, rng.gen_range(-20.0..20.0), a.sin() * speed);
                 commands.spawn((
-                    Mesh2d(meshes.gem.clone()),
-                    MeshMaterial2d(materials.particle.clone()),
-                    Transform::from_xyz(pos.x, pos.y, 0.0),
+                    Mesh3d(meshes.gem.clone()),
+                    MeshMaterial3d(materials.particle.clone()),
+                    Transform::from_xyz(pos.x, pos.y, pos.z),
                     Particle {
                         velocity: vel,
                         life: Timer::from_seconds(
@@ -162,7 +174,7 @@ pub fn contact_damage(
     mut player_q: Query<(&Transform, &mut Player)>,
     enemy_q: Query<&Transform, (With<Enemy>, Without<Player>)>,
     shake: Option<ResMut<ScreenShake>>,
-    mut audio_events: EventWriter<crate::audio::AudioEvent>,
+    mut audio_events: MessageWriter<crate::audio::AudioEvent>,
 ) {
     if upgrade_state.active {
         return;
@@ -170,10 +182,11 @@ pub fn contact_damage(
     let Ok((p_tf, mut p)) = player_q.single_mut() else {
         return;
     };
-    let pp = p_tf.translation.truncate();
+    let pp = Vec2::new(p_tf.translation.x, p_tf.translation.z);
     let mut count = 0u32;
     for e_tf in &enemy_q {
-        if pp.distance(e_tf.translation.truncate()) < crate::constants::CONTACT_RANGE {
+        let ep = Vec2::new(e_tf.translation.x, e_tf.translation.z);
+        if pp.distance(ep) < crate::constants::CONTACT_RANGE {
             count += 1;
         }
     }

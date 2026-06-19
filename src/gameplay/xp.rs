@@ -1,5 +1,7 @@
+use crate::constants::ENTITY_HEIGHT;
 use crate::gameplay::components::*;
 use crate::gameplay::resources::*;
+use crate::gameplay::stats::modifier::{ModifierType, StatBundle, StatModifier};
 use bevy::prelude::*;
 
 // ── XP Magnet ──
@@ -12,10 +14,10 @@ pub fn magnet_xp(
     let Ok(p_tf) = player_q.single() else {
         return;
     };
-    let pp = p_tf.translation.truncate();
+    let pp = Vec2::new(p_tf.translation.x, p_tf.translation.z);
     let dt = time.delta().as_secs_f32();
     for mut tf in &mut gem_q {
-        let gp = tf.translation.truncate();
+        let gp = Vec2::new(tf.translation.x, tf.translation.z);
         let dist = pp.distance(gp);
         if dist < crate::constants::MAGNET_RANGE && dist > 0.0 {
             let strength = 1.0 - (dist / crate::constants::MAGNET_RANGE);
@@ -24,40 +26,68 @@ pub fn magnet_xp(
                     * (crate::constants::MAGNET_MAX_SPEED - crate::constants::MAGNET_BASE_SPEED);
             let dir = (pp - gp).normalize();
             tf.translation.x += dir.x * speed * dt;
-            tf.translation.y += dir.y * speed * dt;
+            tf.translation.z += dir.y * speed * dt;
         }
     }
 }
 
 // ── XP Collection & Leveling ──
+//
+// Level-up bonuses are applied as StatModifiers on the player's StatBundle:
+//   - max_health: +10 Flat per level (cumulative)
+//   - attack_damage: ×1.15 PercentMult per level (compounds)
+//   - health: +20 healed on level-up, capped at new max
+//
+// Using a sequence counter inside each source ID so multiple level-ups in one
+// tick produce distinct modifiers that don't overwrite each other.
 
 pub fn collect_xp(
-    mut player_q: Query<(&Transform, &mut Player)>,
+    mut player_q: Query<(&Transform, &mut Player, &mut StatBundle)>,
     gem_q: Query<(Entity, &Transform, &XpGem)>,
     mut commands: Commands,
     mut upgrade_state: ResMut<UpgradeState>,
     mut stats: ResMut<GameStats>,
-    mut audio_events: EventWriter<crate::audio::AudioEvent>,
+    mut audio_events: MessageWriter<crate::audio::AudioEvent>,
 ) {
-    let Ok((p_tf, mut p)) = player_q.single_mut() else {
+    let Ok((p_tf, mut p, mut bundle)) = player_q.single_mut() else {
         return;
     };
-    let pp = p_tf.translation.truncate();
+    let pp = Vec2::new(p_tf.translation.x, p_tf.translation.z);
 
     for (e, g_tf, gem) in &gem_q {
-        if pp.distance(g_tf.translation.truncate()) < 36.0 {
+        let gp = Vec2::new(g_tf.translation.x, g_tf.translation.z);
+        if pp.distance(gp) < 36.0 {
             p.xp += gem.0;
             stats.xp_collected += gem.0 as u64;
             commands.entity(e).despawn();
             audio_events.write(crate::audio::AudioEvent::Pickup);
 
+            let mut level_up_count = 0u32;
             while p.xp >= p.xp_to_next {
                 p.xp -= p.xp_to_next;
                 p.level += 1;
+                level_up_count += 1;
                 p.xp_to_next = (p.xp_to_next as f32 * 1.5) as u32;
-                p.max_health += 10.0;
-                p.health = (p.health + 20.0).min(p.max_health);
-                p.attack_damage *= 1.15;
+
+                // Apply level-up stat bonuses via modifiers (one per level)
+                let seq = p.level;
+                bundle.add_modifier(
+                    "max_health",
+                    StatModifier::new(&format!("level_up_hp_{seq}"), 10.0, ModifierType::Flat),
+                );
+                bundle.add_modifier(
+                    "attack_damage",
+                    StatModifier::new(
+                        &format!("level_up_dmg_{seq}"),
+                        1.15,
+                        ModifierType::PercentMult,
+                    ),
+                );
+
+                // Heal 20 HP on level-up, capped at new max
+                let new_max = bundle.get("max_health");
+                p.health = (p.health + 20.0).min(new_max);
+
                 audio_events.write(crate::audio::AudioEvent::LevelUp);
 
                 if p.level == 2 && !p.upgrade_chosen && !upgrade_state.active {

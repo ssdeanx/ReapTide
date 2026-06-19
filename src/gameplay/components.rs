@@ -19,17 +19,20 @@ pub enum EnemyKind {
 }
 
 // ── Player Component ──
+//
+// Only runtime-mutable state lives here.
+// Computed stats (max_health, attack_damage, attack_range, move_speed, attack_interval)
+// live in StatBundle (attached to the same entity). Read them via Query<&StatBundle>.
+//
+// See: player::spawn_player for how both are initialised.
 
 #[derive(Component)]
 pub struct Player {
     pub health: f32,
-    pub max_health: f32,
     pub level: u32,
     pub xp: u32,
     pub xp_to_next: u32,
     pub attack_timer: Timer,
-    pub attack_damage: f32,
-    pub attack_range: f32,
     pub upgrade_chosen: bool,
     pub chosen_upgrade: Option<WeaponUpgrade>,
 }
@@ -64,13 +67,8 @@ pub struct UpgradeChoiceButton {
     pub upgrade: WeaponUpgrade,
 }
 
-#[derive(Component)]
-pub struct DarkOverlay;
-
 // ── Camera ──
-
-#[derive(Component)]
-pub struct GameCamera;
+// IsometricCamera is defined in camera.rs
 
 // ── Enemy Component ──
 
@@ -86,7 +84,7 @@ pub struct Enemy {
 
 #[derive(Component)]
 pub struct Particle {
-    pub velocity: Vec2,
+    pub velocity: Vec3,
     pub life: Timer,
 }
 
@@ -101,7 +99,7 @@ pub struct XpGem(pub u32);
 pub struct Projectile {
     pub damage: f32,
     pub life: Timer,
-    pub target: Vec2,
+    pub target: Vec3,
 }
 
 // ── Wave Spawner ──

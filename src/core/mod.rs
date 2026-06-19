@@ -16,12 +16,12 @@ impl Plugin for CorePlugin {
             .init_state::<GameOverlayState>()
             .insert_resource(StateTransitionRequest::default())
             // Register core events
-            .add_event::<event::DamageEvent>()
-            .add_event::<event::KillEvent>()
-            .add_event::<event::XpPickupEvent>()
-            .add_event::<event::LevelUpEvent>()
-            .add_event::<event::GameOverEvent>()
-            .add_event::<event::WaveStartEvent>()
-            .add_event::<event::PlayerDeathEvent>();
+            .add_message::<event::DamageEvent>()
+            .add_message::<event::KillEvent>()
+            .add_message::<event::XpPickupEvent>()
+            .add_message::<event::LevelUpEvent>()
+            .add_message::<event::GameOverEvent>()
+            .add_message::<event::WaveStartEvent>()
+            .add_message::<event::PlayerDeathEvent>();
     }
 }
