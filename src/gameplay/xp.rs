@@ -9,7 +9,9 @@ pub fn magnet_xp(
     player_q: Query<&Transform, (With<Player>, Without<XpGem>)>,
     mut gem_q: Query<&mut Transform, (With<XpGem>, Without<Player>)>,
 ) {
-    let Ok(p_tf) = player_q.single() else { return; };
+    let Ok(p_tf) = player_q.single() else {
+        return;
+    };
     let pp = p_tf.translation.truncate();
     let dt = time.delta().as_secs_f32();
     for mut tf in &mut gem_q {
@@ -17,7 +19,9 @@ pub fn magnet_xp(
         let dist = pp.distance(gp);
         if dist < crate::constants::MAGNET_RANGE && dist > 0.0 {
             let strength = 1.0 - (dist / crate::constants::MAGNET_RANGE);
-            let speed = crate::constants::MAGNET_BASE_SPEED + strength * (crate::constants::MAGNET_MAX_SPEED - crate::constants::MAGNET_BASE_SPEED);
+            let speed = crate::constants::MAGNET_BASE_SPEED
+                + strength
+                    * (crate::constants::MAGNET_MAX_SPEED - crate::constants::MAGNET_BASE_SPEED);
             let dir = (pp - gp).normalize();
             tf.translation.x += dir.x * speed * dt;
             tf.translation.y += dir.y * speed * dt;
@@ -33,9 +37,11 @@ pub fn collect_xp(
     mut commands: Commands,
     mut upgrade_state: ResMut<UpgradeState>,
     mut stats: ResMut<GameStats>,
-    mut audio_events: MessageWriter<crate::audio::AudioEvent>,
+    mut audio_events: EventWriter<crate::audio::AudioEvent>,
 ) {
-    let Ok((p_tf, mut p)) = player_q.single_mut() else { return; };
+    let Ok((p_tf, mut p)) = player_q.single_mut() else {
+        return;
+    };
     let pp = p_tf.translation.truncate();
 
     for (e, g_tf, gem) in &gem_q {

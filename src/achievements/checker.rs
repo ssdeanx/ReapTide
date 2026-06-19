@@ -80,12 +80,17 @@ fn try_unlock_achievement(
     }
 
     if let Some(def) = ACHIEVEMENTS.iter().find(|a| a.id == achievement_id) {
-        profile.achievements_unlocked.insert(achievement_id.to_string());
+        profile
+            .achievements_unlocked
+            .insert(achievement_id.to_string());
         award_currency(profile, def.reward);
         save_profile(profile);
 
         commands.spawn((
-            Text::new(format!("Achievement Unlocked: {} (+{} gold)", def.name, def.reward)),
+            Text::new(format!(
+                "Achievement Unlocked: {} (+{} gold)",
+                def.name, def.reward
+            )),
             TextFont {
                 font_size: 24.0,
                 ..default()

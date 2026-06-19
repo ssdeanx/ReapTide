@@ -4,7 +4,6 @@ pub mod screen;
 pub mod components;
 pub mod theme;
 pub mod menu;
-pub mod hud;
 
 pub struct UIPlugin;
 

@@ -1,4 +1,4 @@
-use crate::constants::{WeaponUpgrade, ATTACK_DAMAGE, ATTACK_INTERVAL, ATTACK_RANGE, UPGRADE_ATTACK_SPEED_MULT, UPGRADE_DAMAGE_MULT, UPGRADE_RANGE_MULT};
+use crate::constants::{ATTACK_DAMAGE, ATTACK_INTERVAL, ATTACK_RANGE, UPGRADE_ATTACK_SPEED_MULT, UPGRADE_DAMAGE_MULT, UPGRADE_RANGE_MULT};
 use crate::gameplay::components::*;
 use crate::gameplay::resources::*;
 use bevy::prelude::*;
@@ -43,7 +43,7 @@ pub fn spawn_upgrade_menu(
         });
 }
 
-fn spawn_upgrade_btn(parent: &mut ChildBuilder, upgrade: WeaponUpgrade, title: &str, desc: &str, color: Color) {
+fn spawn_upgrade_btn(parent: &mut ChildSpawner, upgrade: WeaponUpgrade, title: &str, desc: &str, color: Color) {
     parent
         .spawn((
             Button,

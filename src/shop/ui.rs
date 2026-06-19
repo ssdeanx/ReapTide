@@ -101,7 +101,7 @@ pub fn spawn_shop(mut commands: Commands, profile: Res<PlayerProfile>) {
                     .spawn((
                         Button,
                         BackgroundColor(bg_color),
-                        BorderColor::all(border_color),
+                        BorderColor(border_color),
                         Node {
                             width: Val::Px(400.0),
                             height: Val::Px(40.0),
@@ -183,7 +183,7 @@ pub fn spawn_shop(mut commands: Commands, profile: Res<PlayerProfile>) {
                     .spawn((
                         Button,
                         BackgroundColor(bg_color),
-                        BorderColor::all(border_color),
+                        BorderColor(border_color),
                         Node {
                             width: Val::Px(400.0),
                             height: Val::Px(40.0),
@@ -223,7 +223,7 @@ pub fn spawn_shop(mut commands: Commands, profile: Res<PlayerProfile>) {
                 .spawn((
                     Button,
                     BackgroundColor(Color::srgba(0.15, 0.15, 0.3, 0.95)),
-                    BorderColor::all(Color::srgb(1.0, 0.3, 0.3)),
+                    BorderColor(Color::srgb(1.0, 0.3, 0.3)),
                     Node {
                         width: Val::Px(200.0),
                         height: Val::Px(40.0),

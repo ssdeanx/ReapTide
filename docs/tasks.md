@@ -30,17 +30,21 @@
 **Phase: Foundation — Prototype Stage**
 
 ### Recently Completed
+
 - T0.1 — Cargo.toml updated with all required deps (commented, ready for uncomment as features are implemented)
 - T0.2 — All monolithic files refactored to modular structure (save/, shop/, achievements/, menu.rs deleted)
-- Bevy 0.18 API migration — codebase now compiles cleanly on bevy 0.18.1 (Message system, new UI API, AudioPlayer)
+- Bevy 0.18 API migration — codebase now compiles cleanly on bevy 0.18.1 (Message system, new UI API, AudioPlayer, BorderColor, Text API, ChildSpawner)
 - T1.1 — StatInstance + ModifierStack implemented with 9 unit tests (all passing)
 - T1.2 — StatDefinitions resource implemented with 5 unit tests (all passing)
 - Total: 14 new stat system tests, all green
+- **Bevy 0.18 warning pass** — Fixed `BorderColor::all()` → `BorderColor()`, `text.0` → `text.sections[0].value`, missing `rand::Rng` imports, missing `Default` derives, duplicate dead code removal, unused `GamePlugin` trait removal, HUD not being spawned
+- **T2.1 — EnemyBrain FSM** — Full AI state machine with 9 states, perception, memory, timer-driven transitions, 8 unit tests, integrated into gameplay loop
 
 ### Next Priority
-- T2.1 — EnemyBrain FSM component (AI state machine)
-- T1.3 — Port existing player stats to use ModifierStack
-- T2.2 — Expand enemy types to 10
+
+- T1.3 — Port existing player stats to use ModifierStack **[P1 — Size S]**
+- T2.2 — Expand enemy types to 10 **[P1 — Size M]**
+- T4.1 — Map generation (arena layout) **[P1 — Size L]**
 - T3.1 — Integrate Avian3D physics (XZ-constrained)
 - T7.1 — Expand shop to 12+ items
 - T8.1 — Build Shop screen UI
@@ -56,6 +60,7 @@
 Convert the entire rendering pipeline from 2D top-down to 3D isometric. All gameplay logic stays 2D (movement on XZ plane), but rendering uses the full Bevy 3D pipeline.
 
 **Changes required:**
+
 - [ ] Add `Camera3dBundle` with orthographic projection at isometric angle (~35-45° down, 45° rotated)
 - [ ] Create `IsometricCamera` marker component
 - [ ] Replace all `Mesh2d` + `ColorMaterial` with `Mesh3d` + `StandardMaterial`
@@ -88,8 +93,8 @@ Add the following dependencies to Cargo.toml:
 
 ```toml
 # Current
-bevy = "0.18"
-rand = "0.8"
+bevy = "0.18.1"
+rand = "0.10.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
@@ -119,6 +124,7 @@ serde_json = "1"
 ```
 
 **Tasks:**
+
 - [ ] Research compatible versions for Bevy 0.18
 - [ ] Add all dependencies to Cargo.toml
 - [ ] Verify compilation succeeds
@@ -133,6 +139,7 @@ serde_json = "1"
 Currently `main.rs` uses `#[path = "..."]` to reference old monolithic files. Cleaned up.
 
 **Completed:**
+
 - [x] `src/save.rs` → deleted (uses `save/mod.rs`)
 - [x] `src/shop.rs` → `shop/ui.rs` (UI merged into modular)
 - [x] `src/achievements.rs` → `achievements/checker.rs` (logic merged into modular)
@@ -163,6 +170,7 @@ impl StateStack {
 ```
 
 **Tasks:**
+
 - [ ] Implement StateStack resource
 - [ ] Implement push/pop/replace/current methods
 - [ ] Create state transition event
@@ -181,6 +189,7 @@ impl StateStack {
 The single most important system. Everything depends on stats working correctly.
 
 **Files created:**
+
 - `src/gameplay/stats/modifier.rs` — StatModifier, ModifierType, StatInstance, StatBundle component
 - `src/gameplay/stats/mod.rs` — StatPlugin, cleanup_expired_modifiers system, re-exports
 
@@ -212,6 +221,7 @@ impl StatInstance {
 ```
 
 **Tasks (completed):**
+
 - [x] Create `src/gameplay/stats/` module directory
 - [x] Implement StatModifier struct
 - [x] Implement ModifierType enum
@@ -249,6 +259,7 @@ pub struct StatDefinitions {
 ```
 
 **Tasks (completed):**
+
 - [x] Define core stats (max_health, move_speed, attack_damage, attack_range, attack_interval, armor, magic_resist)
 - [x] Define secondary stats (crit_chance, crit_damage, dodge, life_steal, thorns, magnet_range, xp_mult, dash_count, dash_cooldown, dash_distance, knockback_power, knockback_resist)
 - [x] Define resource stats (health, max_mana, mana, stamina, max_stamina)
@@ -264,6 +275,7 @@ pub struct StatDefinitions {
 Replace the flat `Player.health`, `Player.attack_damage`, etc. with StatInstance-based stats from StatBundle.
 
 **Changes:**
+
 - [ ] `Player` component gets `stats: HashMap<&'static str, StatInstance>` (via StatBundle)
 - [ ] Initialized from CharacterDef base stats
 - [ ] CharacterDef gains all new stat fields
@@ -276,9 +288,10 @@ Replace the flat `Player.health`, `Player.attack_damage`, etc. with StatInstance
 
 ### T2.1 Implement EnemyBrain FSM Component
 
-**Priority: P0 | Size: M | Status: Not Started**
+**Priority: P0 | Size: M | Status: Complete**
 
 **Files to create:**
+
 - `src/gameplay/enemies/brain.rs` — EnemyBrain component, AiState enum, AiStateMachine trait
 - `src/gameplay/enemies/behaviors/` — Behavior sets per enemy type
 - `src/gameplay/enemies/mod.rs` — Updated EnemyPlugin
@@ -311,13 +324,14 @@ pub struct EnemyMemory {
 ```
 
 **Tasks:**
-- [ ] Create EnemyBrain component
-- [ ] Implement AiState enum with all states
-- [ ] Implement Perception struct
-- [ ] Implement EnemyMemory with forget logic
-- [ ] Create state transition system
-- [ ] Wire to timer-driven state machine
-- [ ] Write unit tests for transitions
+
+- [x] Create EnemyBrain component with AiState FSM, Perception, EnemyMemory
+- [x] Implement AiState enum with all 9 states (Idle, Patrol, Alert, Chase, Attack, Flee, Stunned, Special, Dead)
+- [x] Implement Perception struct with sight/hearing/memory config
+- [x] Implement EnemyMemory with last-known-position forget logic
+- [x] Create state transition system (update_enemy_brain) with 10 transition rules
+- [x] Wire to timer-driven state machine in gameplay/mod.rs (runs before enemies_chase)
+- [x] Write 8 unit tests for transitions, states, stun, memory, and perception
 
 ---
 
@@ -326,9 +340,11 @@ pub struct EnemyMemory {
 **Priority: P1 | Size: M | Status: Not Started**
 
 **Files to create:**
+
 - `src/gameplay/enemies/types.rs` — Enemy type definitions
 
 **Enemy types to implement:**
+
 - [ ] Grunt — Chase + melee, swarm bonus
 - [ ] Archer — Patrol + keep distance, volley fire
 - [ ] Brute — Slow chase + AoE slam, armor
@@ -341,6 +357,7 @@ pub struct EnemyMemory {
 - [ ] Boss placeholder — Multi-phase stub
 
 **Tasks:**
+
 - [ ] Define 10 enemy types in `EnemyDef` registry
 - [ ] Each type gets unique stats (HP, speed, damage, XP)
 - [ ] Each type gets unique behavior set
@@ -357,6 +374,7 @@ pub struct EnemyMemory {
 **Priority: P1 | Size: M | Status: Not Started**
 
 **Tasks:**
+
 - [ ] Add avian3d dependency to Cargo.toml
 - [ ] Create `src/gameplay/physics/mod.rs` — PhysicsPlugin
 - [ ] Configure physics layers (Player, Enemy, Projectile, Wall, Trigger)
@@ -376,6 +394,7 @@ pub struct EnemyMemory {
 **Priority: P1 | Size: S | Status: Not Started**
 
 **Tasks:**
+
 - [ ] Create KnockbackEvent on combat hit
 - [ ] Knockback force proportional to damage source
 - [ ] Direction: away from damage source
@@ -392,6 +411,7 @@ pub struct EnemyMemory {
 **Priority: P1 | Size: M | Status: Not Started**
 
 **Tasks:**
+
 - [ ] Add bevy_hanabi dependency
 - [ ] Create `src/gameplay/effects/mod.rs` — EffectsPlugin
 - [ ] Replace transform-based particles with GPU particles
@@ -415,6 +435,7 @@ pub struct EnemyMemory {
 Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 
 **Tasks:**
+
 - [ ] Add global `DirectionalLight` with shadow mapping
 - [ ] Add rim/ambient light for fill
 - [ ] Add `PointLight` to player (torch/glow effect)
@@ -434,6 +455,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 **Priority: P1 | Size: L | Status: Not Started**
 
 **Files to create:**
+
 - `src/gameplay/maps/mod.rs` — MapPlugin
 - `src/gameplay/maps/generation.rs` — BSP room generation
 - `src/gameplay/maps/rooms.rs` — Room templates
@@ -441,6 +463,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 - `src/gameplay/maps/tiles.rs` — Tile types and grid
 
 **Tasks:**
+
 - [ ] Implement BSP room generation algorithm
 - [ ] Implement L-shaped corridor connection
 - [ ] Room type assignment (combat, treasure, boss, rest, shop, secret)
@@ -459,6 +482,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 **Priority: P1 | Size: M | Status: Not Started**
 
 **New characters to implement:**
+
 - [ ] Necromancer — Summoner archetype, raises minions from kills
 - [ ] Pyromancer — Fire specialist, burn spreads between enemies
 - [ ] Tempest — Lightning/CC, chain lightning passive
@@ -467,6 +491,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 - [ ] Voidweaver — Utility, teleport, debuff spread
 
 **Tasks:**
+
 - [ ] Each character gets unique stats
 - [ ] Each character gets passive ability component
 - [ ] Each character gets unique mechanic (system)
@@ -481,6 +506,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 **Priority: P2 | Size: M | Status: Not Started**
 
 **Tasks:**
+
 - [ ] Mastery XP earned per-run with character
 - [ ] 10 mastery levels per character
 - [ ] Each level unlocks bonus (stat, passive, cosmetic)
@@ -497,12 +523,14 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 **Priority: P1 | Size: M | Status: Not Started**
 
 **New upgrades:**
+
 - [ ] Pierce — Projectiles pass through enemies
 - [ ] Split — Projectiles split into 2 on first hit
 - [ ] Homing — Projectiles track nearest enemy
 - [ ] Elemental Infusion — Adds random element to attacks
 
 **Tasks:**
+
 - [ ] Implement pierce component/logic
 - [ ] Implement split logic
 - [ ] Implement homing projectile AI
@@ -517,6 +545,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 **Priority: P1 | Size: S | Status: Not Started**
 
 **New shop items:**
+
 - [ ] armor_up — Iron Will (+10% damage reduction, max 3)
 - [ ] crit_up — Death Gaze (+5% crit chance, max 3)
 - [ ] life_steal — Vampiric Touch (+3% lifesteal, max 2)
@@ -525,6 +554,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 - [ ] regen_up — Vital Flow (+2 HP/sec regen, max 3)
 
 **Tasks:**
+
 - [ ] Add items to shop catalog
 - [ ] Stat bonuses use ModifierStack
 - [ ] UI shows max level / current level
@@ -539,6 +569,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 **Priority: P1 | Size: M | Status: Not Started**
 
 **Tasks:**
+
 - [ ] Shop screen UI with grid of upgrade cards
 - [ ] Each card shows: name, description, current level, max level, cost
 - [ ] Purchase button with confirmation
@@ -554,6 +585,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 **Priority: P1 | Size: M | Status: Not Started**
 
 **Tasks:**
+
 - [ ] Audio tab: master/music/sfx/ambient volume sliders
 - [ ] Video tab: resolution dropdown, fullscreen toggle, vsync toggle, quality preset
 - [ ] Controls tab: key binding display (rebinding = P2)
@@ -567,6 +599,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 **Priority: P1 | Size: S | Status: Not Started**
 
 **Tasks:**
+
 - [ ] Grid/list of all achievements
 - [ ] Each shows: name, description, reward, unlock status
 - [ ] Locked/unlocked visual state
@@ -579,6 +612,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 **Priority: P1 | Size: M | Status: Not Started**
 
 **Tasks:**
+
 - [ ] Character grid showing all 10 characters
 - [ ] Each card: portrait placeholder, name, stats preview
 - [ ] Locked characters show unlock condition
@@ -593,6 +627,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 **Priority: P1 | Size: S | Status: Not Started**
 
 **Tasks:**
+
 - [ ] Hover over upgrade/item shows detailed tooltip
 - [ ] Tooltip follows mouse cursor
 - [ ] Stat modifier breakdown in tooltip
@@ -607,6 +642,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 **Priority: P1 | Size: S | Status: Not Started**
 
 **Tasks:**
+
 - [ ] Master/Music/SFX/Ambient volume controls
 - [ ] Save audio settings to config
 - [ ] Audio busses with per-bus volume
@@ -619,6 +655,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 **Priority: P2 | Size: S | Status: Not Started**
 
 **Tasks:**
+
 - [ ] Main menu theme
 - [ ] Playing state ambient/drone (placeholder)
 - [ ] Music transitions between states
@@ -633,6 +670,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 **Priority: P2 | Size: M | Status: Not Started**
 
 **Tasks:**
+
 - [ ] Tilde/backtick opens console overlay
 - [ ] Text input with command parsing
 - [ ] Commands: spawn enemy, give xp, toggle god mode, set stat, etc.
@@ -644,6 +682,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 **Priority: P2 | Size: S | Status: Not Started**
 
 **Tasks:**
+
 - [ ] F2 toggles stats overlay
 - [ ] Shows: FPS, entity count, physics timestep
 - [ ] Shows: player stats with modifier breakdown
@@ -658,6 +697,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 **Priority: P1 | Size: M | Status: Not Started**
 
 **Tasks:**
+
 - [ ] Remove all `unwrap()` calls from release paths
 - [ ] Add error handling (Result types) where appropriate
 - [ ] Add doc comments to all public APIs
@@ -671,6 +711,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 ## Sprint Plan — Completed This Session
 
 ### ✅ Done
+
 | Priority | Task ID | Task | Status |
 |----------|---------|------|--------|
 | P0 | T0.1 | Update Cargo.toml with all deps | **Done** |
@@ -680,6 +721,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 | P0 | T0.2f | Bevy 0.18 API migration | **Done** |
 
 ### Next Priority (Recommended)
+
 | Priority | Task ID | Task | Est. Time |
 |----------|---------|------|-----------|
 | P0 | T2.1 | Implement EnemyBrain FSM component | 3-4h |
@@ -693,7 +735,7 @@ Uses Bevy's built-in 3D lighting pipeline. No external crate needed.
 
 ## Dependencies Between Tasks
 
-```
+```bash
 T0.1 (Cargo.toml)
 ├── T3.1 (Physics) — needs avian2d dep
 ├── T4.1 (Particles) — needs hanabi dep

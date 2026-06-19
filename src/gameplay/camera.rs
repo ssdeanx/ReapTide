@@ -2,6 +2,7 @@ use crate::gameplay::components::*;
 use crate::gameplay::resources::*;
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
+use rand::Rng;
 
 // ── Camera Follow & Zoom ──
 

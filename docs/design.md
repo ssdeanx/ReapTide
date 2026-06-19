@@ -44,6 +44,7 @@ ReapTide is a **top-down 2D action roguelite** where the player controls a soul-
 The player character auto-attacks nearby enemies. The player controls movement, positioning, dodge timing, and upgrade selection. Each run is unique — the weapon evolutions, passive items, and boons available create emergent build variety.
 
 ### Target Audience
+
 - Players who enjoy roguelites (Hades, Dead Cells, Rogue Legacy)
 - Players who enjoy survivor-likes (Vampire Survivors, Brotato, Halls of Torment)
 - Casually competitive players (leaderboards, speedrunning)
@@ -54,7 +55,8 @@ The player character auto-attacks nearby enemies. The player controls movement, 
 ## 2. Core Loop
 
 ### Per-Run Loop
-```
+
+```bash
 Enter biome → Survive waves → Level up (choose upgrade) → 
 Defeat mid-boss → Enter next biome → 
 Defeat biome boss → Survive more waves →
@@ -62,14 +64,16 @@ Defeat final boss → Victory / Restart
 ```
 
 ### Death Loop
-```
+
+```bash
 Die → Game Over screen (stats) → Currency awarded → 
 Main Menu → Shop (spend currency on permanent upgrades) → 
 Select character → Enter new run
 ```
 
 ### Meta Loop
-```
+
+```bash
 Complete runs → Earn Souls (currency) → 
 Buy permanent upgrades in Shop → 
 Unlock new characters → 
@@ -197,7 +201,7 @@ impl StatInstance {
 
 ### 5.1 Damage Types
 
-```
+```bash
 Physical
 ├── Slashing   (swords, claws)
 ├── Blunt      (hammers, fists)
@@ -216,7 +220,7 @@ True Damage (bypasses all defenses)
 
 ### 5.2 Damage Formula
 
-```
+```rust
 RawDamage = BaseDamage × DamageMultiplier
 DefenseMultiplier = (1.0 - Armor/100.0) × (1.0 - MagicResist/100.0)
 FinalDamage = RawDamage × DefenseMultiplier × RandomFactor(0.95-1.05)
@@ -285,7 +289,7 @@ pub enum AiState {
 
 ### 6.2 State Transition Rules
 
-```
+```bash
 Idle → Patrol:        Always (if waypoints exist)
 Idle/Patrol → Alert:  Event heard within hearing range
 Alert → Chase:        Player sighted within sight range
@@ -318,7 +322,7 @@ Each enemy type has a behavior set defining which states are available, transiti
 
 Bosses use a multi-phase FSM. Each phase has its own behavior set, and transitions happen at HP thresholds.
 
-```
+```bash
 Phase 1 (100%-66%):  Standard attacks, occasional summons
 Phase 2 (66%-33%):   Faster attacks, new pattern, enrage adds
 Phase 3 (33%-0%):    All patterns active, berserk mode, AoE spam
@@ -332,7 +336,7 @@ Phase 3 (33%-0%):    All patterns active, berserk mode, AoE spam
 
 Algorithm: Modified BSP (Binary Space Partition) with corridor connection.
 
-```
+```text
 1. Divide map area into rooms via BSP
 2. Connect rooms via L-shaped corridors
 3. Assign room types (combat, treasure, boss, rest, shop, secret)
@@ -344,6 +348,7 @@ Algorithm: Modified BSP (Binary Space Partition) with corridor connection.
 ### 7.2 Room Templates
 
 Each biome has a pool of room templates. Templates define:
+
 - Tile layout (open, corridors, choke points)
 - Obstacle positions (pillars, walls, pits)
 - Spawn zones (edge, center, corners)
@@ -383,6 +388,7 @@ Each biome has 3-5 room layouts, 2-4 hazard types, and unique biome-specific mec
 ### 8.2 Character Mastery
 
 Each character has a mastery track (10 levels):
+
 - XP earned per run with that character
 - Each level unlocks a character-specific bonus
 - Max level unlocks exclusive cosmetic
@@ -467,7 +473,7 @@ Each character has a mastery track (10 levels):
 
 ### 11.1 Screen Hierarchy
 
-```
+```bash
 MainMenu
 ├── Title / Logo animation
 ├── Start Game
@@ -572,18 +578,21 @@ Planned: ECS-based audio events with spatial audio for 3D positioning (when game
 Chosen over 2D top-down and pure 3D for the following reasons:
 
 **vs 2D Top-Down:**
+
 - Bevy's 3D pipeline (PBR, lights, shadows) is far more capable than its 2D pipeline
 - One Blender model instead of 8 sprite angles or billboard hacks
 - Real-time lighting with real shadows — not faked overlays
 - Post-processing (bloom, depth of field) works natively
 
 **vs Full 3D (third-person):**
+
 - Gameplay is still 2D — movement on a plane, enemies chase on a plane
 - No complex camera controls, no z-targeting, no vertical aiming
 - No animation complexity of a full 3D game
 - Easier to balance, easier to test, easier to ship
 
 **The architecture:**
+
 ```rust
 // Y is up. Ground plane is Y=0.
 // Player movement is on XZ plane.
@@ -628,6 +637,7 @@ We use Avian3D with movement constrained to the XZ plane and Y=0. This gives us 
 ### 13.5 Data-Driven Design
 
 All gameplay-defining data lives in registries/tables, not in system code. This enables:
+
 - Balance patches without code changes
 - Hot-reloading data during development
 - Future modding support

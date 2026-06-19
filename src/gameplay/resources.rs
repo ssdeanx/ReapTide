@@ -49,7 +49,7 @@ pub struct Paused(pub bool);
 #[derive(Resource, Default)]
 pub struct ZoomLevel(pub f32);
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct UpgradeState {
     pub active: bool,
 }

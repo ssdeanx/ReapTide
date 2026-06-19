@@ -25,7 +25,7 @@ pub fn spawn_main_menu(mut commands: Commands, profile: Res<PlayerProfile>) {
         parent.spawn((
             Button,
             BackgroundColor(BG_PANEL),
-            BorderColor::all(ACCENT_BLUE),
+            BorderColor(ACCENT_BLUE),
             Node { width: Val::Px(300.0), height: Val::Px(50.0), justify_content: JustifyContent::Center, align_items: AlignItems::Center, border: UiRect::all(Val::Px(2.0)), ..default() },
         )).with_children(|btn| {
             btn.spawn((Text::new("START GAME"), TextFont { font_size: 24.0, ..default() }, TextColor(ACCENT_BLUE)));
@@ -34,7 +34,7 @@ pub fn spawn_main_menu(mut commands: Commands, profile: Res<PlayerProfile>) {
         parent.spawn((
             Button,
             BackgroundColor(BG_PANEL),
-            BorderColor::all(ACCENT_GOLD),
+            BorderColor(ACCENT_GOLD),
             Node { width: Val::Px(300.0), height: Val::Px(50.0), justify_content: JustifyContent::Center, align_items: AlignItems::Center, border: UiRect::all(Val::Px(2.0)), ..default() },
         )).with_children(|btn| {
             btn.spawn((Text::new("SHOP"), TextFont { font_size: 24.0, ..default() }, TextColor(ACCENT_GOLD)));

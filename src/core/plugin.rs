@@ -1,15 +1,6 @@
 use bevy::app::PluginGroup;
 use bevy::prelude::*;
 
-// ── Base Plugin Trait ──
-// Every module exports a Plugin struct implementing this trait.
-// Modules register their own systems, resources, events, and state transitions.
-
-pub trait GamePlugin: Plugin {
-    fn name() -> &'static str;
-    fn dependencies() -> Vec<&'static str>;
-}
-
 // ── Plugin Group ──
 // Registers all game modules in dependency order.
 

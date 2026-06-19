@@ -1,5 +1,3 @@
-use crate::core::AppState;
-
 // ── Game Constants ──
 pub const PLAYER_SPEED: f32 = 280.0;
 pub const ATTACK_INTERVAL: f32 = 0.35;
@@ -29,6 +27,28 @@ pub const ZOOM_MIN: f32 = 0.3;
 pub const ZOOM_MAX: f32 = 3.0;
 pub const ZOOM_STEP: f32 = 0.1;
 pub const ZOOM_DEFAULT: f32 = 1.0;
+
+// ── Enemy Stat Constants ──
+pub const SMALL_HP_BASE: f32 = 15.0;
+pub const SMALL_HP_PER_WAVE: f32 = 5.0;
+pub const SMALL_SPEED_BASE: f32 = 80.0;
+pub const SMALL_SPEED_PER_WAVE: f32 = 3.0;
+pub const SMALL_XP_BASE: u32 = 5;
+pub const MEDIUM_HP_BASE: f32 = 40.0;
+pub const MEDIUM_HP_PER_WAVE: f32 = 12.0;
+pub const MEDIUM_SPEED_BASE: f32 = 55.0;
+pub const MEDIUM_SPEED_PER_WAVE: f32 = 2.0;
+pub const MEDIUM_XP_BASE: u32 = 15;
+pub const BIG_HP_BASE: f32 = 100.0;
+pub const BIG_HP_PER_WAVE: f32 = 25.0;
+pub const BIG_SPEED_BASE: f32 = 35.0;
+pub const BIG_SPEED_PER_WAVE: f32 = 1.0;
+pub const BIG_XP_BASE: u32 = 40;
+
+// ── Upgrade Multipliers ──
+pub const UPGRADE_ATTACK_SPEED_MULT: f32 = 1.5;
+pub const UPGRADE_DAMAGE_MULT: f32 = 1.5;
+pub const UPGRADE_RANGE_MULT: f32 = 1.5;
 
 // ── Character Definitions ──
 #[derive(Clone)]

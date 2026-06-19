@@ -1,12 +1,12 @@
 use bevy::prelude::*;
 
-// ── Global Message Bus ──
-// Messages for cross-module communication.
-// Each plugin reads messages it cares about; no direct system calls between modules.
+// ── Global Event Bus ──
+// Events for cross-module communication.
+// Each plugin reads events it cares about; no direct system calls between modules.
 
-// ── Combat Messages ──
+// ── Combat Events ──
 
-#[derive(Message)]
+#[derive(Event)]
 pub struct DamageEvent {
     pub amount: f32,
     pub kind: DamageKind,
@@ -31,7 +31,7 @@ pub enum Element {
     Poison,
 }
 
-#[derive(Message)]
+#[derive(Event)]
 pub struct KillEvent {
     pub killer: Entity,
     pub victim: Entity,
@@ -40,13 +40,13 @@ pub struct KillEvent {
 
 // ── XP Events ──
 
-#[derive(Message)]
+#[derive(Event)]
 pub struct XpPickupEvent {
     pub amount: u32,
     pub target: Entity,
 }
 
-#[derive(Message)]
+#[derive(Event)]
 pub struct LevelUpEvent {
     pub entity: Entity,
     pub new_level: u32,
@@ -54,7 +54,7 @@ pub struct LevelUpEvent {
 
 // ── Game Events ──
 
-#[derive(Message)]
+#[derive(Event)]
 pub struct GameOverEvent {
     pub level: u32,
     pub kills: u64,
@@ -62,11 +62,11 @@ pub struct GameOverEvent {
     pub xp_collected: u64,
 }
 
-#[derive(Message)]
+#[derive(Event)]
 pub struct WaveStartEvent {
     pub wave: u32,
     pub count: u32,
 }
 
-#[derive(Message)]
+#[derive(Event)]
 pub struct PlayerDeathEvent;
